@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 '''
-Author: marco lin
-Date: 2015-08-28
+Author: chenxing
+Date: 2018-04-30
 '''
 
 from numpy import *
@@ -255,7 +255,7 @@ def my_record():
                      frames_per_buffer=NUM_SAMPLES)
     my_buf = []
     count = 0
-    while count < TIME * 10:  # 控制录音时间
+    while count < TIME * 15:  # 控制录音时间
         string_audio_data = stream.read(NUM_SAMPLES)
         my_buf.append(string_audio_data)
         count += 1
@@ -273,7 +273,7 @@ if __name__ == "__main__":
     API_KEY = 'lGIefOgI5IuELBPUYziS4APL'
     SECRET_KEY = 'csbojnHuFzZPL5ZfXxd76EZed01T3b2j'
     while True:
-        opcode = input("input 1 for training, 2 for classify, 3 for test: ")
+        opcode = input("input 1 for training, 2 for Crawler text test, 3 for Audio test, Others for text test: ")
         if opcode.strip() == "1":
             begtime = time.time()
             testClassify()
@@ -302,6 +302,7 @@ if __name__ == "__main__":
             })
             print('----语音识别已完成----')
             print(result['result'][0])
+
             text = result['result'][0]
             Classify(text)
         else:
