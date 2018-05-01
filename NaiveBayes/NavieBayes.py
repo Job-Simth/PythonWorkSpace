@@ -8,6 +8,9 @@ from numpy import *
 import pickle
 import jieba
 import time
+import wave
+from pyaudio import PyAudio, paInt16
+from aip import AipSpeech
 
 stop_word = ['，', '。', '、', '！', '？', ',', '.', '!', '?', ' ', '', '\n', '（', '）', '(', ')', '\ufeff']
 '''
@@ -226,10 +229,49 @@ def Classify(textList):
         return GOOD
 
 
+'''
+    存储音频
+'''
+framerate = 8000  # 采样频率
+NUM_SAMPLES = 2000
+channels = 1  # 声道
+sampwidth = 2  # 采样字节
+TIME = 1  # 时间
+
+
+def save_wave_file(filename, data):
+    wf = wave.open(filename, 'wb')
+    wf.setnchannels(channels)
+    wf.setsampwidth(sampwidth)
+    wf.setframerate(framerate)
+    wf.writeframes(b"".join(data))
+    wf.close()
+
+
+def my_record():
+    pa = PyAudio()
+    stream = pa.open(format=paInt16, channels=1,
+                     rate=framerate, input=True,
+                     frames_per_buffer=NUM_SAMPLES)
+    my_buf = []
+    count = 0
+    while count < TIME * 10:  # 控制录音时间
+        string_audio_data = stream.read(NUM_SAMPLES)
+        my_buf.append(string_audio_data)
+        count += 1
+        print(count, '秒')
+    save_wave_file('01.wav', my_buf)
+    stream.close()
+
+
 if __name__ == "__main__":
     loadStopword()
     goodCount = 0
     badCount = 0
+    # 定义常量，此处替换为你自己的应用信息
+    APP_ID = '11177120'
+    API_KEY = 'lGIefOgI5IuELBPUYziS4APL'
+    SECRET_KEY = 'csbojnHuFzZPL5ZfXxd76EZed01T3b2j'
     while True:
         opcode = input("input 1 for training, 2 for classify, 3 for test: ")
         if opcode.strip() == "1":
@@ -249,6 +291,19 @@ if __name__ == "__main__":
             print("好评率：", goodCount / (goodCount + badCount))
             goodCount = 0
             badCount = 0
+        elif opcode.strip() == '3':
+            my_record()
+            # 初始化AipSpeech对象
+            aipSpeech = AipSpeech(APP_ID, API_KEY, SECRET_KEY)
+            print('----录音已完成----')
+            print('----开始语音识别----')
+            result = aipSpeech.asr(open('01.wav', 'rb').read(), 'wav', 8000, {
+                'dev_pid': '1536',
+            })
+            print('----语音识别已完成----')
+            print(result['result'][0])
+            text = result['result'][0]
+            Classify(text)
         else:
             text = input("input the text:")
             Classify(text)
