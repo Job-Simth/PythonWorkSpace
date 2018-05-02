@@ -4,7 +4,7 @@ Author: chenxing
 Date: 2018-04-30
 '''
 
-from numpy import *
+import numpy as np
 import pickle
 import jieba
 import time
@@ -95,7 +95,7 @@ def testClassify():
 
     # 随机索引，用作测试集, 同时将随机的索引从训练集中剔除
     for i in range(testSetNum):
-        randIndex = int(random.uniform(0, len(trainingIndexSet)))
+        randIndex = int(np.random.uniform(0, len(trainingIndexSet)))
         testSet.append(trainingIndexSet[randIndex])
         del (trainingIndexSet[randIndex])
 
@@ -107,16 +107,16 @@ def testClassify():
         trainClasses.append(listClasses[docIndex])
 
     print("----traning begin----")
-    pBABV, pGOODV, pCLASS = trainNaiveBayes(array(trainMatrix), array(trainClasses))
+    pBAD, pGOODV, pCLASS = trainNaiveBayes(np.array(trainMatrix), np.array(trainClasses))
 
     print("----traning complete----")
-    print("pBABV:", pBABV)
+    print("pBAD:", pBAD)
     print("pGOODV:", pGOODV)
     print("pCLASS:", pCLASS)
     print("bad: %d, good:%d" % (BAD, GOOD))
 
     args = dict()
-    args['pBABV'] = pBABV
+    args['pBAD'] = pBAD
     args['pGOODV'] = pGOODV
     args['pCLASS'] = pCLASS
 
@@ -131,7 +131,7 @@ def testClassify():
     errorCount = 0
     for docIndex in testSet:
         vecWord = bagOfWords2VecMN(listVocab, listAllDoc[docIndex])
-        if classifyNaiveBayes(array(vecWord), pBABV, pGOODV, pCLASS) != listClasses[docIndex]:
+        if classifyNaiveBayes(np.array(vecWord), pBAD, pGOODV, pCLASS) != listClasses[docIndex]:
             errorCount += 1
             doc = ' '.join(listAllDoc[docIndex])
             print("classfication error", doc)
@@ -140,8 +140,8 @@ def testClassify():
 
 # 分类方法(这边只做二类处理)
 def classifyNaiveBayes(vec2Classify, pBADVec, pGOODVec, pClass1):
-    pIsBAD = sum(vec2Classify * pBADVec) + log(pClass1)  # element-wise mult
-    pIsGOOD = sum(vec2Classify * pGOODVec) + log(1.0 - pClass1)
+    pIsBAD = sum(vec2Classify * pBADVec) + np.log(pClass1)  # element-wise mult
+    pIsGOOD = sum(vec2Classify * pGOODVec) + np.log(1.0 - pClass1)
 
     if pIsBAD > pIsGOOD:
         return BAD
@@ -162,8 +162,8 @@ def trainNaiveBayes(trainMatrix, trainClasses):
     numWords = len(trainMatrix[0])  # 计算矩阵列数, 等于每个向量的维数
     numIsBAD = len([x for x in trainClasses if x == BAD])
     pCLASS = numIsBAD / float(numTrainDocs)
-    pBADNum = ones(numWords)
-    pGOODNum = ones(numWords)
+    pBADNum = np.ones(numWords)
+    pGOODNum = np.ones(numWords)
     pBADDemon = 2.0
     pGOODDemon = 2.0
 
@@ -175,8 +175,8 @@ def trainNaiveBayes(trainMatrix, trainClasses):
             pGOODNum += trainMatrix[i]
             pGOODDemon += sum(trainMatrix[i])
 
-    pBADVect = log(pBADNum / pBADDemon)
-    pGOODVect = log(pGOODNum / pGOODDemon)
+    pBADVect = np.log(pBADNum / pBADDemon)
+    pGOODVect = np.log(pGOODNum / pGOODDemon)
 
     return pBADVect, pGOODVect, pCLASS
 
@@ -205,7 +205,7 @@ def bagOfWords2VecMN(listVocab, inputSet):
 def Classify(textList):
     fr = open("args.pkl", "rb")
     args = pickle.load(fr)
-    pBABV = args['pBABV']
+    pBAD = args['pBAD']
     pGOODV = args['pGOODV']
     pCLASS = args['pCLASS']
     fr.close()
@@ -220,7 +220,7 @@ def Classify(textList):
 
     text = textParse(textList)
     vecWord = bagOfWords2VecMN(listVocab, text)
-    class_type = classifyNaiveBayes(array(vecWord), pBABV, pGOODV, pCLASS)
+    class_type = classifyNaiveBayes(np.array(vecWord), pBAD, pGOODV, pCLASS)
     if class_type == 1:
         print("classfication type:差评")
         return BAD
@@ -255,7 +255,7 @@ def my_record():
                      frames_per_buffer=NUM_SAMPLES)
     my_buf = []
     count = 0
-    while count < TIME * 15:  # 控制录音时间
+    while count < TIME * 10:  # 控制录音时间
         string_audio_data = stream.read(NUM_SAMPLES)
         my_buf.append(string_audio_data)
         count += 1
@@ -300,11 +300,14 @@ if __name__ == "__main__":
             result = aipSpeech.asr(open('01.wav', 'rb').read(), 'wav', 8000, {
                 'dev_pid': '1536',
             })
-            print('----语音识别已完成----')
-            print(result['result'][0])
 
-            text = result['result'][0]
-            Classify(text)
+            if result['err_msg'] != 'success.':
+                print('未获得语音')
+            else:
+                print('----语音识别已完成----')
+                print(result['result'][0])
+                text = result['result'][0]
+                Classify(text)
         else:
             text = input("input the text:")
             Classify(text)
